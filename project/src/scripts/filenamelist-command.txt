@@ -1,0 +1,1 @@
+find . -maxdepth 1 -type f -name "*.png" | sort -V | sed 's/^.\///' | jq -R . | jq -s '{ "filenames": . }' > output.json

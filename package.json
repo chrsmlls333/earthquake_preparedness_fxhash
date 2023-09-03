@@ -1,6 +1,6 @@
 {
-  "name": "fxhash-boilerplate",
-  "version": "2.0.0",
+  "name": "understructures_fxhash",
+  "version": "1.0.0",
   "description": "The fxhash boilerplate, comes with some utilities to create a project for fxhash",
   "main": "index.js",
   "directories": {
@@ -12,8 +12,8 @@
     "start:project": "webpack serve --config ./lib/config/webpack.config.dev.js",
     "build": "webpack --config ./lib/config/webpack.config.prod.js"
   },
-  "author": "fxhash",
-  "license": "MIT",
+  "author": "Chris Eugene Mills",
+  "license": "GPLv3",
   "dependencies": {
     "@octokit/rest": "^20.0.1",
     "adm-zip": "^0.5.9",

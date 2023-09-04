@@ -16,22 +16,31 @@ const seed = ~~ (fxrand() * 999999999)
 // these are the variables you can use as inputs to your algorithms
 // console.log('hash', fxhash)   // the 64 chars hex number fed to your algorithm
 // console.log('rand', fxrand()) // deterministic PRNG function, use it instead of Math.random()
+let fxPreviewCalled = false;
+
 
 // SETTINGS //////////////////////////////////////////////////
 
-CEM.setVerbose(true) //REMEMBER TO FLIP
-var speedrun = false; //No delays
+CEM.setVerbose(false) //REMEMBER TO FLIP
+
+const titleText =
+`Understructures (
+   Lift Yr. Skinny Fists
+      Like Antennas to Heaven )`
+const authorText = "Chris Eugene Mills"
 
 const imagePath = "./assets/plans-iso-tiny/"
 const imageFilenamesPath = "./assets/plans-iso-tiny/filenames.json"
 const headstartPath = "./assets/headstart/"
 
-var headstartPics = false; //use pre-baked pngs to jump ahead at beginning (old method)
-var headstartPicsNum = 10; //0.png ... n.png
+const canvasSize = { width: 1920, height: 1080 };
+const loadingAreaSize = { width: 400, height: 400 };
+const loadingFloors = 20;
 
 var headstartBuild = true;
 var headstartNumBuildings = 100;
 
+var speedrun = false; //No delays
 var autoContinue = true; //Leave true, false disables continu() function
 var newSet = true; //Divide into sets or procedurally add
 var reloadURL = false; //Reload page every set
@@ -39,13 +48,13 @@ var fade = false; //Continually fades to black
 var setClean = false; //Erases between sets
 var setFade = false; //Fades between sets
 var setSwitch = true; //Switch between black and white
-var basement = false; //Add reversed floors below
+var drawBasements = false; //Add reversed floors below
 
 var stepDelay = 70; //Delay between floors
 var buildingDelay = 350; //Delay between buildings
 var newSetDelay = 800; //Delay between sets
 
-var bg = 0; //Background color
+var bg = 24; //Background color
 var floorSpacingRange = [ 20, 30 ]; //X spacing between floors
 var fVal = [ 8, 40 ]; //# of floors
 var buildingsInSetRange = [ 5, 10 ]; //# of basement floors
@@ -56,14 +65,14 @@ var debugPositions = false; //Displays source points and imag flip/rotate settin
 
 // Variables ////////////////////////////////////////////////////
 
-var canvas, off, loading; //Drawing surfaces
+var canvas, off, loa; //Drawing surfaces
 var blendSetting;
 var lighterOrDarker; //Which Set of images to pull from
 var buildingsInSet, building, floorsInBuilding, floor, basementsInBuilding, basement, floorSpacing, centerShift;
 var img, screenshotimg, loadingimg; 
 var loc, rot, scal, flip;
 var screenScale;
-var buildingsCount, setsCount;
+var buildingsCount, setsCount, headstartProgress;
 var imageFilenames;
 var download = false;
 
@@ -80,32 +89,22 @@ const sketch = p5 => {
 		// Preload plan image reference
 		p5.loadJSON(imageFilenamesPath, function(data) {
 			imageFilenames = data.filenames
+
+			// Preload 1 floorplan for loading animation
+			if (headstartBuild) {
+				let num = p5.floor( p5.random( imageFilenames.length ) );
+				let path = imagePath + "white/" + imageFilenames[num];
+				loadingimg = p5.loadImage( path, null, function() {
+					CEM.error( "FAILED: " + path );
+					this._decrementPreload(); //hack to say everything is fine
+				} )
+			}
 		})
 
-		// Preload 1 floorplan for loading animation
-		if (headstartBuild) {
-			let num = p5.floor( p5.random( imageFilenames.length ) );
-			let path = imagePath + "white/" + imageFilenames[num];
-			loadingimg = p5.loadImage( path, null, function() {
-				CEM.print( "FAILED: " + path );
-				this._decrementPreload(); //hack to say everything is fine
-			} )
-		}
-
-		// Preload 1 headstart screenshot
-		if (headstartPics) {
-			let num = p5.floor( p5.random( headstartPicsNum ) ); 
-			let path = headstartPath + num + ".png";
-			screenshotimg = p5.loadImage( path, null, function() {
-				CEM.print( "FAILED: " + path );
-				headstartPics = false;
-				this._decrementPreload(); //hack to say everything is fine
-			} );
-		}
 	}
 
 	p5.setup = () => {
-		// pixelDensity(1);
+		// p5.pixelDensity(1);
 		canvas = p5.createCanvas( p5.windowWidth, p5.windowHeight );
 		//canvas.position( 0, 0 );
 		//canvas.parent( 'sketch' );
@@ -113,19 +112,37 @@ const sketch = p5 => {
 		p5.background( 0 );
 
 		//Resettable
-		init2();
+		init2(); 
 	}
 	
 	p5.draw = () => {
 		p5.background( 0 );
 
+		//Draw Offscreen Canvas Buffer
 		p5.translate( p5.width / 2, p5.height / 2 );
 		p5.scale( screenScale ); //Scale from Center
 		p5.translate( off.width / -2, off.height / -2 );
 
 		p5.image( off, 0, 0 );
 
-		if (download) {
+		//Draw Loading "Icon"
+		headstartProgress = buildingsCount / headstartNumBuildings;
+		if (headstartBuild && loa && loadingimg && headstartProgress < 1.0) {
+			drawLoading( headstartProgress );
+			p5.image( loa, 0, 0 );
+		}
+
+		//Preview Logic
+		if (!fxPreviewCalled && (
+			(headstartBuild && headstartProgress >= 1.0) || 
+			(!headstartBuild && p5.millis() > 30000)
+		)) {
+			$fx.preview();
+			fxPreviewCalled = true;
+		}
+
+		//Download
+		if (download && !(headstartBuild && headstartProgress < 1.0)) { 
 			p5.save(off, `understructures_${fxhash}_${(p5.millis().toFixed(0))}.png`);
 			download = false;
 		}
@@ -134,26 +151,32 @@ const sketch = p5 => {
 	function init2() {
 		CEM.newl();
 		CEM.print( ">>>>>>> RESET <<<<<<<<" );
-	
+		
 		//Reset Canvas Buffer
-		off = p5.createGraphics( 1920, 1080 );
+		if (!off) off = p5.createGraphics( canvasSize.width, canvasSize.height );
 		// off.pixelDensity(1);
 		off.background( bg );
 		//off.noSmooth();
 		off.fill( bg, 255 / 40 );
 		off.noStroke();
 		screenScale = CEM.calcScale( canvas, off, "fill" );
-	
-		//Draw headstart image
-		if (headstartPics) off.image(screenshotimg, 0, 0);
-	
+
+		//Reset Loading Animation Buffer
+		if (!loa) loa = p5.createGraphics( canvasSize.width, canvasSize.height );
+		loa.smooth();
+		loa.clear();
+		loa.noStroke();
+		loa.fill(255);
+		loa.textSize(24); 
+		loa.textFont('monospace');
+
 		//Reset Values
 		lighterOrDarker = true;
 		blendSetting = p5.ADD;
 		buildingsInSet = building = 0;
 		floorsInBuilding = floor = 0;
 		basementsInBuilding = basement = 0;
-		setsCount = buildingsCount = 0;
+		setsCount = buildingsCount = headstartProgress = 0;
 	
 		startSet();
 	}
@@ -161,6 +184,48 @@ const sketch = p5 => {
 	p5.windowResized = () => {
 		p5.resizeCanvas( p5.windowWidth, p5.windowHeight );
 		screenScale = CEM.calcScale( canvas, off, "fill" );
+	}
+
+	function drawLoading(progress_) {
+		let progress = p5.constrain(progress_, 0, 1);
+
+		let loadingimgScale = CEM.calcScale( loadingAreaSize, loadingimg, "fit" );
+		let moveDistance = loadingAreaSize.height - loadingimg.height*loadingimgScale;
+		let floors = loadingFloors;
+
+		//loa.clear(); 
+		loa.background( bg );
+		loa.push();
+		loa.translate( loa.width/2, loa.height/2)
+		loa.translate( loadingAreaSize.width/-2, loadingAreaSize.height/-2,)
+		
+		// Draw plans progress stack
+		for (let f = 0; f < Math.floor(floors * progress); f++) {
+			let dist = moveDistance * (1 - f/(floors-1));
+			loa.push();
+			loa.translate( 0, dist ); 
+			loa.scale( loadingimgScale );
+			loa.blend( loadingimg, 0, 0, loadingimg.width, loadingimg.height, 0, 0, loadingimg.width, loadingimg.height, p5.LIGHTEST );
+			loa.pop();
+		}
+
+		// Draw title
+		loa.push();
+		loa.translate( loadingAreaSize.width/2, 0 );
+		// loa.textAlign( p5.CENTER, p5.BOTTOM );
+		// loa.text( authorText, 0, 0 );
+		loa.translate( -200, -60 );
+		loa.textAlign( p5.LEFT, p5.BOTTOM );
+		loa.text( titleText, 0, 0 );
+		loa.pop();
+
+		// Draw progress text
+		loa.translate(loadingAreaSize.width/2, loadingAreaSize.height + 80);
+		loa.textAlign(p5.CENTER, p5.TOP); 
+		// loa.text(`Loading... ${Math.floor(progress*100)}%\n'`, 0, 0);
+		loa.text(`Laying Foundations: ${buildingsCount}/${headstartNumBuildings}\nArchitectural Plans: ${imageFilenames.length}`, 0, 0);
+
+		loa.pop();
 	}
 
 	function startSet() {
@@ -216,6 +281,7 @@ const sketch = p5 => {
 				CEM.print( "Floors: " + floorsInBuilding );
 				floor = 0;
 				basementsInBuilding = p5.floor( p5.random( 0, floorsInBuilding / 3 ) );
+				basementsInBuilding *= drawBasements;
 				CEM.print( " Below: " + basementsInBuilding );
 				basement = 0;
 	
@@ -223,14 +289,14 @@ const sketch = p5 => {
 				generateLocations();
 	
 				//Next step
-				if ( basement ) {
+				if ( drawBasements ) {
 					CEM.newTimer( addBase, skipCheck(stepDelay) );
 				} else {
 					CEM.newTimer( addFloor, skipCheck(stepDelay) );
 				}
 			},
 			function () {
-				CEM.print( "FAILED: " + path );
+				CEM.error( "FAILED: " + path );
 				CEM.newTimer( startBuilding, skipCheck(stepDelay) );
 			}
 		);
@@ -371,13 +437,25 @@ const sketch = p5 => {
 	}
 
 	function skipCheck(delay_) {
-		return speedrun || (headstartBuild && buildingsCount < headstartNumBuildings) ? 0 : delay_;
+		//For headstart, shortcut timers with 0ms
+		//For speedrun, don't shortcut timers but move quick at 1ms
+		return (headstartBuild && buildingsCount < headstartNumBuildings) ? 0 : ((speedrun) ? 1 : delay_);
 	}
 
 	// INTERACTION /////////////////////////////////////////////////////////////////////////
 
 	p5.mousePressed = () => {
-		if ( p5.mouseButton == LEFT ) {
+		switch (p5.mouseButton) {
+			case p5.LEFT:
+				
+				break;
+		
+			case p5.RIGHT:
+
+				break;
+		
+			default:
+				break;
 		}
 
 		// prevent default
@@ -392,10 +470,22 @@ const sketch = p5 => {
 	p5.keyPressed = () => {
 		switch ( p5.keyCode ) {
 			case 82: // r
+				if (headstartBuild && headstartProgress < 1) break;
 				init2();
 				break;
 			case 83: // s
 				download = true;
+				break;
+			case 84: // t
+				speedrun = true;
+				break;
+		}
+	}
+
+	p5.keyReleased = () => {
+		switch ( p5.keyCode ) {
+			case 84: // t
+				speedrun = false;
 				break;
 		}
 	}

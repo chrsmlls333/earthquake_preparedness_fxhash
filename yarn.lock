@@ -763,9 +763,10 @@ caniuse-lite@^1.0.30001400:
   resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001418.tgz"
   integrity sha512-oIs7+JL3K9JRQ3jPZjlH6qyYDp+nBTCais7hjh0s+fuBwufc7uZ7hPYMXrDOJhV360KGMTcczMRObk0/iMqZRg==
 
-"cemjs@git+https://git@github.com/chrsmlls333/cemjs.git#source":
+"cemjs@git+https://git@github.com/chrsmlls333/cemjs.git#fc54326a940de7742f2f397bd1194ec7904ef8c7":
   version "0.3.0"
-  resolved "git+https://git@github.com/chrsmlls333/cemjs.git#027f820c9defc68a13e7db7ce4efdba1183f2186"
+  resolved "git+https://git@github.com/chrsmlls333/cemjs.git#fc54326a940de7742f2f397bd1194ec7904ef8c7"
+  integrity sha512-Bfssd/SQgAKRoGBz2eskfdeogJXp/4iyquxrd+I/T0TK6sKqUbEEmT2JdH/dq9c/QYziUJ+pg3dKTZ5UAloQeA==
   dependencies:
     "@math.gl/core" "^3.6.3"
     "@tweakpane/plugin-essentials" "^0.1.8"

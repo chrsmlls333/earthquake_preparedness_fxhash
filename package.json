@@ -19,7 +19,7 @@
     "adm-zip": "^0.5.9",
     "axios": "^1.4.0",
     "boxen": "^7.1.1",
-    "cemjs": "git+https://git@github.com/chrsmlls333/cemjs.git#source",
+    "cemjs": "git+https://git@github.com/chrsmlls333/cemjs.git#fc54326a940de7742f2f397bd1194ec7904ef8c7",
     "chalk": "^4.1.2",
     "copy-webpack-plugin": "^11.0.0",
     "css-loader": "^6.7.1",

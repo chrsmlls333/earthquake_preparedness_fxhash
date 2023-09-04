@@ -69,7 +69,7 @@ var canvas, off, loa; //Drawing surfaces
 var blendSetting;
 var lighterOrDarker; //Which Set of images to pull from
 var buildingsInSet, building, floorsInBuilding, floor, basementsInBuilding, basement, floorSpacing, centerShift;
-var img, screenshotimg, loadingimg; 
+var img, loadingimg; 
 var loc, rot, scal, flip;
 var screenScale;
 var buildingsCount, setsCount, headstartProgress;

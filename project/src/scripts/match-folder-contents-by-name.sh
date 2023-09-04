@@ -1,7 +1,7 @@
 #!/bin/bash
 
-reference_folder="/home/chrsm/development/understructures_fxhash/project/public/Plans-Iso/black/keep"
-active_folder="/home/chrsm/development/understructures_fxhash/project/public/Plans-Iso/white/keep"
+reference_folder="./project/public/assets/plans-iso-tiny/white"
+active_folder="./project/public/assets/plans-iso-tiny/black"
 
 # Get a list of filenames from the reference folder
 reference_files=($(ls "$reference_folder"))

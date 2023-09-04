@@ -1,8 +1,8 @@
 #!/bin/bash
 
-input_folder="/home/chrsm/development/understructures_fxhash/project/public/Plans-Iso/black"
-output_folder="/home/chrsm/development/understructures_fxhash/project/public/Plans-Iso/black/keep"
-max_size=10000000  # 10MB in bytes
+input_folder="./project/_original/assets/plans-iso-tiny/white"
+output_folder="./project/public/assets/plans-iso-tiny/white"
+max_size=13800000  # 10MB in bytes
 total_size=0
 
 mkdir -p "$output_folder"

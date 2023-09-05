@@ -21,7 +21,7 @@ let fxPreviewCalled = false;
 
 // SETTINGS //////////////////////////////////////////////////
 
-CEM.setVerbose(false) //REMEMBER TO FLIP
+CEM.setVerbose(false)
 
 const titleText =
 `Understructures (

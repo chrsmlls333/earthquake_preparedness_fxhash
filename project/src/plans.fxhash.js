@@ -104,7 +104,7 @@ const sketch = p5 => {
 	}
 
 	p5.setup = () => {
-		// p5.pixelDensity(1);
+		p5.pixelDensity(1);
 		canvas = p5.createCanvas( p5.windowWidth, p5.windowHeight );
 		//canvas.position( 0, 0 );
 		//canvas.parent( 'sketch' );
@@ -154,7 +154,7 @@ const sketch = p5 => {
 		
 		//Reset Canvas Buffer
 		if (!off) off = p5.createGraphics( canvasSize.width, canvasSize.height );
-		// off.pixelDensity(1);
+		off.pixelDensity(1);
 		off.background( bg );
 		//off.noSmooth();
 		off.fill( bg, 255 / 40 );

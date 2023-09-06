@@ -12,14 +12,15 @@ import * as CEM from 'cemjs'
 
 // FXHASH ////////////////////////////////////////////////////
 
-const seed = ~~ (fxrand() * 999999999)
-// these are the variables you can use as inputs to your algorithms
-// console.log('hash', fxhash)   // the 64 chars hex number fed to your algorithm
-// console.log('rand', fxrand()) // deterministic PRNG function, use it instead of Math.random()
+console.log('hash', $fx.hash); // the 64 chars hex number fed to your algorithm
+
+CEM.setRandomFunction($fx.rand());
+const p5RandomSeed = ~~ ($fx.rand() * 999999999);
+const p5NoiseSeed  = ~~ ($fx.rand() * 999999999);
 let fxPreviewCalled = false;
 
 
-// SETTINGS //////////////////////////////////////////////////
+// FUNCTIONALITY SETTINGS //////////////////////////////////////////////////
 
 CEM.setVerbose(false)
 
@@ -31,11 +32,11 @@ const authorText = "Chris Eugene Mills"
 
 const imagePath = "./assets/plans-iso-tiny/"
 const imageFilenamesPath = "./assets/plans-iso-tiny/filenames.json"
-const headstartPath = "./assets/headstart/"
 
 const canvasSize = { width: 1920, height: 1080 };
 const loadingAreaSize = { width: 400, height: 400 };
 const loadingFloors = 20;
+const loadingFadeInTime = 1250;
 
 var headstartBuild = true;
 var headstartNumBuildings = 100;
@@ -44,24 +45,47 @@ var speedrun = false; //No delays
 var autoContinue = true; //Leave true, false disables continu() function
 var newSet = true; //Divide into sets or procedurally add
 var reloadURL = false; //Reload page every set
-var fade = false; //Continually fades to black
+var fade = false; //Continually fades to black // BROKEN, too low bit depth
 var setClean = false; //Erases between sets
 var setFade = false; //Fades between sets
 var setSwitch = true; //Switch between black and white
-var drawBasements = false; //Add reversed floors below
+
+var debugPositions = false; //Displays source points and imag flip/rotate settings 
+
+// STYLE SETTINGS /////////////////////////////////////////////////////////////
+
+// var drawBasements = true; //Add reversed floors below
+// var blendingMethod = 0; //0 = Lightest/Darkest, 1 = Screen/Multiply
+
+// var stepDelay = 70; //Delay between floors
+// var buildingDelay = 350; //Delay between buildings
+// var newSetDelay = 800; //Delay between sets
+
+// var bg = 6; //Background color
+// var floorSpacingRange = [ 20, 30 ]; //Y spacing between floors
+// var floorNumRange = [ 8, 40 ]; //# of floors 																	20% min, 100% max, 20-60 max
+// var basementsToFloorsRatio = 0.33; //Random 0-0.33 * floors = # of basements 
+// var buildingsInSetRange = [ 5, 10 ]; //# of buildings in set
+// var scaleValRange = [ 0.3, 0.5 ]; //Building XY Scale
+// var breadth = 1.1; //Distribution of buildings from center
+// var darkTonePreference = 1.25; //Multiplier on num buildings for darker colors
+
+var drawBasements = true; //Add reversed floors below
+var blendingMethod = 0; //0 = Lightest/Darkest, 1 = Screen/Multiply
 
 var stepDelay = 70; //Delay between floors
 var buildingDelay = 350; //Delay between buildings
 var newSetDelay = 800; //Delay between sets
 
-var bg = 24; //Background color
-var floorSpacingRange = [ 20, 30 ]; //X spacing between floors
-var fVal = [ 8, 40 ]; //# of floors
-var buildingsInSetRange = [ 5, 10 ]; //# of basement floors
-var scaleVal = [ 0.3, 0.5 ]; //Building XY Scale
+var bg = 6; //Background color
+var floorSpacingRange = [ 20, 30 ]; //Y spacing between floors
+var floorNumRange = [ 8, 40 ]; //# of floors 																	20% min, 100% max, 20-60 max
+var basementsToFloorsRatio = 0.33; //Random 0-0.33 * floors = # of basements 
+var buildingsInSetRange = [ 5, 10 ]; //# of buildings in set
+var scaleValRange = [ 0.3, 0.5 ]; //Building XY Scale
 var breadth = 1.1; //Distribution of buildings from center
+var darkTonePreference = 1.25; //Multiplier on num buildings for darker colors
 
-var debugPositions = false; //Displays source points and imag flip/rotate settings 
 
 // Variables ////////////////////////////////////////////////////
 
@@ -72,7 +96,7 @@ var buildingsInSet, building, floorsInBuilding, floor, basementsInBuilding, base
 var img, loadingimg; 
 var loc, rot, scal, flip;
 var screenScale;
-var buildingsCount, setsCount, headstartProgress;
+var buildingsCount, setsCount, headstartProgress, timeLoaded;
 var imageFilenames;
 var download = false;
 
@@ -84,7 +108,8 @@ const sketch = p5 => {
 	p5.preload = () => {
 
 		// FXHASH // Lock all random calls to fxhash seed
-		p5.randomSeed(seed);
+		p5.randomSeed(p5RandomSeed);
+		p5.noiseSeed(p5NoiseSeed);
 
 		// Preload plan image reference
 		p5.loadJSON(imageFilenamesPath, function(data) {
@@ -116,7 +141,7 @@ const sketch = p5 => {
 	}
 	
 	p5.draw = () => {
-		p5.background( 0 );
+		p5.background( bg );
 
 		//Draw Offscreen Canvas Buffer
 		p5.translate( p5.width / 2, p5.height / 2 );
@@ -126,17 +151,38 @@ const sketch = p5 => {
 		p5.image( off, 0, 0 );
 
 		//Draw Loading "Icon"
-		headstartProgress = buildingsCount / headstartNumBuildings;
-		if (headstartBuild && loa && loadingimg && headstartProgress < 1.0) {
-			drawLoading( headstartProgress );
-			p5.image( loa, 0, 0 );
+		if (headstartBuild && loa && loadingimg) {
+			headstartProgress = buildingsCount / headstartNumBuildings;
+
+			if ( $fx.context === "capture") {
+				// WAIT AND CUT TO CONTENT
+				if ( headstartProgress >= 1.0 && !fxPreviewCalled ) { $fx.preview(); fxPreviewCalled = true; }
+			} else {
+				if ( headstartProgress < 1.0 ) {
+					// LOADING STATE
+					drawLoading( headstartProgress );
+					p5.image( loa, 0, 0 );
+				} else {
+					// DONE LOADING, FADE IN
+					if ( timeLoaded === null ) timeLoaded = p5.millis();
+					if ( p5.millis() <= timeLoaded + loadingFadeInTime ) {
+						let ease = CEM.Easing.easeInOutExpo( p5.millis()-timeLoaded, 255, -255, loadingFadeInTime );
+						drawLoading( headstartProgress );
+						p5.tint( 255, ease )
+						p5.image( loa, 0, 0 );
+						p5.tint( 255 );
+					}
+				}
+			}
 		}
 
-		//Preview Logic
-		if (!fxPreviewCalled && (
-			(headstartBuild && headstartProgress >= 1.0) || 
-			(!headstartBuild && p5.millis() > 30000)
-		)) {
+		//Preview Logic for no-load Scenario
+		if (
+			$fx.context === "capture" && 
+			!headstartBuild && 
+			!fxPreviewCalled &&
+			p5.millis() > 30000
+		) {
 			$fx.preview();
 			fxPreviewCalled = true;
 		}
@@ -157,7 +203,7 @@ const sketch = p5 => {
 		off.pixelDensity(1);
 		off.background( bg );
 		//off.noSmooth();
-		off.fill( bg, 255 / 40 );
+		off.fill( bg );
 		off.noStroke();
 		screenScale = CEM.calcScale( canvas, off, "fill" );
 
@@ -177,6 +223,7 @@ const sketch = p5 => {
 		floorsInBuilding = floor = 0;
 		basementsInBuilding = basement = 0;
 		setsCount = buildingsCount = headstartProgress = 0;
+		timeLoaded = null;
 	
 		startSet();
 	}
@@ -186,6 +233,7 @@ const sketch = p5 => {
 		screenScale = CEM.calcScale( canvas, off, "fill" );
 	}
 
+	
 	function drawLoading(progress_) {
 		let progress = p5.constrain(progress_, 0, 1);
 
@@ -238,25 +286,29 @@ const sketch = p5 => {
 	
 		if ( setClean ) off.background( bg );
 		
-		var blendingMethod = 0; //p5.random() > 0.5;
-		if (blendingMethod) {
-			if ( lighterOrDarker ) blendSetting = p5.LIGHTEST;
-			else blendSetting = p5.DARKEST;
-		} else {
-			if ( lighterOrDarker ) blendSetting = p5.SCREEN;
-			else blendSetting = p5.MULTIPLY;
+		switch (blendingMethod) {
+			case 0:
+			default:
+				if ( lighterOrDarker ) blendSetting = p5.LIGHTEST;
+				else blendSetting = p5.DARKEST;
+				break;
+		
+			case 1:
+				if ( lighterOrDarker ) blendSetting = p5.SCREEN;
+				else blendSetting = p5.MULTIPLY;
+				break;
 		}
-	
+
 		// Floor Spacing
 		floorSpacing = p5.floor( p5.random( floorSpacingRange[ 0 ], floorSpacingRange[ 1 ] ) );
 		CEM.print( "FloorDiff: " + floorSpacing );
 	
 		//Calculate x shift, honestly can't remember how this works but it does
-		centerShift = ( ( floorSpacingRange[ 1 ] - floorSpacingRange[ 0 ] ) / 2 + floorSpacingRange[ 0 ] ) * ( ( fVal[ 1 ] - fVal[ 0 ] ) / 2 + fVal[ 0 ] ) / 2;
+		centerShift = ( ( floorSpacingRange[ 1 ] - floorSpacingRange[ 0 ] ) / 2 + floorSpacingRange[ 0 ] ) * ( ( floorNumRange[ 1 ] - floorNumRange[ 0 ] ) / 2 + floorNumRange[ 0 ] ) / 2;
 	
 		//Number of buildings
 		buildingsInSet = p5.ceil( p5.random( buildingsInSetRange[ 0 ], buildingsInSetRange[ 1 ] ) );
-		if ( !lighterOrDarker ) buildingsInSet *= 1.25; //More Black
+		if ( !lighterOrDarker ) buildingsInSet *= darkTonePreference; //More Black
 		CEM.print( "Buildings: " + buildingsInSet );
 		building = 0;
 	
@@ -277,10 +329,10 @@ const sketch = p5 => {
 				buildingsCount++;
 	
 				//How many floors?
-				floorsInBuilding = p5.floor( p5.random( fVal[ 0 ], fVal[ 1 ] ) );
+				floorsInBuilding = p5.floor( p5.random( floorNumRange[ 0 ], floorNumRange[ 1 ] ) );
 				CEM.print( "Floors: " + floorsInBuilding );
 				floor = 0;
-				basementsInBuilding = p5.floor( p5.random( 0, floorsInBuilding / 3 ) );
+				basementsInBuilding = p5.floor( p5.random( 0, floorsInBuilding * basementsToFloorsRatio ) );
 				basementsInBuilding *= drawBasements;
 				CEM.print( " Below: " + basementsInBuilding );
 				basement = 0;
@@ -310,7 +362,7 @@ const sketch = p5 => {
 	
 		function generateLocations() {
 			rot = p5.random() > 0.5;
-			scal = p5.random( scaleVal[ 0 ], scaleVal[ 1 ] );
+			scal = p5.random( scaleValRange[ 0 ], scaleValRange[ 1 ] );
 			flip = p5.random() > 0.5;
 			var br = ( breadth / scal ); //account for scaling
 			loc = p5.createVector(  p5.random( off.width  / 2 - off.width  * br / 2, off.width  / 2 + off.width  * br / 2 ),

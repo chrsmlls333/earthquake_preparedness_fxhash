@@ -12,11 +12,11 @@ import * as CEM from 'cemjs'
 
 // FXHASH ////////////////////////////////////////////////////
 
-console.log('hash', $fx.hash); // the 64 chars hex number fed to your algorithm
+console.log( 'hash', $fx.hash ); // the 64 chars hex number fed to your algorithm
 
-CEM.setRandomFunction($fx.rand());
-const p5RandomSeed = ~~ ($fx.rand() * 999999999);
-const p5NoiseSeed  = ~~ ($fx.rand() * 999999999);
+CEM.setRandomFunction( $fx.rand );
+const p5RandomSeed = ~~ ( $fx.rand() * 999999999 );
+const p5NoiseSeed  = ~~ ( $fx.rand() * 999999999 );
 let fxPreviewCalled = false;
 
 
@@ -42,6 +42,7 @@ var headstartBuild = true;
 var headstartNumBuildings = 100;
 
 var speedrun = false; //No delays
+var flatMode = false; //Don't elevate
 var autoContinue = true; //Leave true, false disables continu() function
 var newSet = true; //Divide into sets or procedurally add
 var reloadURL = false; //Reload page every set
@@ -54,28 +55,12 @@ var debugPositions = false; //Displays source points and imag flip/rotate settin
 
 // STYLE SETTINGS /////////////////////////////////////////////////////////////
 
-// var drawBasements = true; //Add reversed floors below
-// var blendingMethod = 0; //0 = Lightest/Darkest, 1 = Screen/Multiply
-
-// var stepDelay = 70; //Delay between floors
-// var buildingDelay = 350; //Delay between buildings
-// var newSetDelay = 800; //Delay between sets
-
-// var bg = 6; //Background color
-// var floorSpacingRange = [ 20, 30 ]; //Y spacing between floors
-// var floorNumRange = [ 8, 40 ]; //# of floors 																	20% min, 100% max, 20-60 max
-// var basementsToFloorsRatio = 0.33; //Random 0-0.33 * floors = # of basements 
-// var buildingsInSetRange = [ 5, 10 ]; //# of buildings in set
-// var scaleValRange = [ 0.3, 0.5 ]; //Building XY Scale
-// var breadth = 1.1; //Distribution of buildings from center
-// var darkTonePreference = 1.25; //Multiplier on num buildings for darker colors
-
-var drawBasements = true; //Add reversed floors below
+var drawBasements = false; //Add reversed floors below
 var blendingMethod = 0; //0 = Lightest/Darkest, 1 = Screen/Multiply
 
 var stepDelay = 70; //Delay between floors
 var buildingDelay = 350; //Delay between buildings
-var newSetDelay = 800; //Delay between sets
+var newSetDelay = 800; //Delay between sets 
 
 var bg = 6; //Background color
 var floorSpacingRange = [ 20, 30 ]; //Y spacing between floors
@@ -85,6 +70,93 @@ var buildingsInSetRange = [ 5, 10 ]; //# of buildings in set
 var scaleValRange = [ 0.3, 0.5 ]; //Building XY Scale
 var breadth = 1.1; //Distribution of buildings from center
 var darkTonePreference = 1.25; //Multiplier on num buildings for darker colors
+
+var flatMode = 
+
+$fx.features({
+	"Basements": CEM.coin(0.25), //Build down before going up
+	"Blending": ["Standard", "Noir"].at(CEM.coin(0.15)), //Lightest/Darkest vs Screen/Multiply
+	"Speed": CEM.randomWeighted(["Lazy", "On-Schedule", "Ahead", "Uncalled For"], [1,2,1,0.2]), //delays
+	"Zoning": CEM.randomWeighted(["Mixed-Use", "Strata", "Downtown"], [2,3,1]), //# of floors
+	"Set Length": ["Short", "Long"].at(CEM.coin()), //# of buildings in set
+	"Spread": ["Sprawl", "Island"].at(CEM.coin(0.25)), //Distribution of buildings from center
+})
+
+function getNamedFeatureValue(featureName, values = {}) {
+	let key = $fx.getFeature(featureName);
+	if (!key) CEM.error(`No feature called '${featureName}'`);
+	if (!values.hasOwnProperty(key)) CEM.error(`No keyvalue pair for '${key}', from '${featureName}'`);
+	return values[key];
+}
+
+drawBasements = $fx.getFeature("Basements"); //Add reversed floors below
+blendingMethod = getNamedFeatureValue("Blending", {
+	"Standard": 0,
+	"Noir": 1
+}); //0 = Lightest/Darkest, 1 = Screen/Multiply
+
+floorNumRange[1] = getNamedFeatureValue("Zoning", {
+	"Mixed-Use": 20,
+	"Strata": 40,
+	"Downtown": 60,
+});
+floorNumRange[0] = floorNumRange[1] * 0.2;
+if ($fx.getFeature("Zoning") === "Downtown") {
+	scaleValRange[0] *= 0.7;
+	scaleValRange[1] *= 0.9;
+	floorSpacingRange[0] *= 1.3
+	floorSpacingRange[1] *= 2
+}
+
+buildingsInSetRange[1] = getNamedFeatureValue("Set Length", {
+	"Short": 6,
+	"Long": 18
+});
+buildingsInSetRange[0] = buildingsInSetRange[1] * 0.4;
+
+breadth = getNamedFeatureValue("Spread", {
+	"Sprawl": 1.1,
+	"Island": 0.5
+});
+scaleValRange[0] *= 0.5 + 0.5 * (breadth/1.1);
+scaleValRange[1] *= 0.5 + 0.5 * (breadth/1.1);
+
+var stepDelay = 70; //Delay between floors
+var buildingDelay = 350; //Delay between buildings
+var newSetDelay = 800; //Delay between sets
+
+switch ($fx.getFeature("Speed")) {
+	case "Lazy":
+		stepDelay = 120;
+		buildingDelay = 500;
+		newSetDelay = 1000;
+		break;
+	case "On-Schedule":
+		stepDelay = 70;
+		buildingDelay = 350;
+		newSetDelay = 800;
+		break;
+	case "Ahead":
+		stepDelay = 40;
+		buildingDelay = 150;
+		newSetDelay = 600;
+		break;
+	case "Uncalled For":
+		stepDelay = 10;
+		buildingDelay = 100;
+		newSetDelay = 500;
+		break;
+
+	default:
+		break;
+}
+
+// UNCHANGED
+// var bg = 6; //Background color
+// var basementsToFloorsRatio = 0.33; //Random 0-0.33 * floors = # of basements 
+// var scaleValRange = [ 0.3, 0.5 ]; //Building XY Scale
+// var breadth = 1.1; 
+// var darkTonePreference = 1.25; //Multiplier on num buildings for darker colors
 
 
 // Variables ////////////////////////////////////////////////////

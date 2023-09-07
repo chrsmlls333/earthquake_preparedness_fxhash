@@ -25,7 +25,7 @@ let fxPreviewCalled = false;
 CEM.setVerbose(false)
 
 const titleText =
-`Understructures (
+`Earthquake Preparedness (
    Lift Yr. Skinny Fists
       Like Antennas to Heaven )`
 const authorText = "Chris Eugene Mills"

@@ -22,7 +22,6 @@ let fxPreviewCalled = false;
 
 // FUNCTIONALITY SETTINGS //////////////////////////////////////////////////
 
-CEM.setVerbose(false)
 
 const titleText =
 `Earthquake Preparedness (
@@ -34,12 +33,13 @@ const imagePath = "./assets/plans-iso-tiny/"
 const imageFilenamesPath = "./assets/plans-iso-tiny/filenames.json"
 
 const canvasSize = { width: 1920, height: 1080 };
-const loadingAreaSize = { width: 400, height: 400 };
-const loadingFloors = 20;
-const loadingFadeInTime = 1250;
+const loadingAreaSize = { width: 500, height: 500 };
+var pixelDens = 1;
 
 var headstartBuild = true;
-var headstartNumBuildings = $fx.context === "capture" ? 300 : 100;
+const headstartNumBuildings = $fx.context === "capture" ? 200 : 100;
+const loadingFloors = 20;
+const loadingFadeInTime = 1250;
 
 var speedrun = false; //No delays
 var autoContinue = true; //Leave true, false disables continu() function
@@ -50,6 +50,7 @@ var setClean = false; //Erases between sets
 var setFade = false; //Fades between sets
 var setSwitch = true; //Switch between black and white
 
+CEM.setVerbose(false)
 var debugPositions = false; //Displays source points and imag flip/rotate settings 
 
 // STYLE SETTINGS /////////////////////////////////////////////////////////////
@@ -176,7 +177,7 @@ var loc, rot, scal, flip;
 var screenScale;
 var buildingsCount, setsCount, headstartProgress, timeLoaded;
 var imageFilenames;
-var download = false;
+var downloadPic = false, downloadGIF = false;
 
 // CORE /////////////////////////////////////////////////////////
 
@@ -184,6 +185,21 @@ const sketch = p5 => {
 
 
 	p5.preload = () => {
+
+		// Get URLparams
+		const params = new URLSearchParams(window.location.search)
+		function getParamValue(URLSearchParamsObject, paramKey, cb) {
+			if (URLSearchParamsObject.has(paramKey)) {
+				let val = parseInt(URLSearchParamsObject.get(paramKey));
+				if (!isNaN(val)) cb(val);
+			}
+		}
+		getParamValue(params, 'scale', v => pixelDens = v)
+		getParamValue(params, 'preload', v => headstartBuild = !!v)
+		getParamValue(params, 'debug', v => {
+			CEM.setVerbose(!!v);
+			debugPositions = !!v;
+		})
 
 		// FXHASH // Lock all random calls to fxhash seed
 		p5.randomSeed(p5RandomSeed);
@@ -207,15 +223,64 @@ const sketch = p5 => {
 	}
 
 	p5.setup = () => {
-		p5.pixelDensity(1);
-		canvas = p5.createCanvas( p5.windowWidth, p5.windowHeight );
+		
+		//Resettable
+		restart(); 
+	}
+
+	function restart( resetRandom = true ) {
+		CEM.newl();
+		CEM.print( ">>>>>>> RESET <<<<<<<<" );
+
+		// Reset Random Seeds
+		if (resetRandom) {
+			$fx.rand.reset();
+			p5.randomSeed(p5RandomSeed);
+			p5.noiseSeed(p5NoiseSeed);
+		}
+
+		//Create Main Canvas
+		p5.pixelDensity(pixelDens);
+		if (!canvas) canvas = p5.createCanvas( p5.windowWidth, p5.windowHeight );
 		//canvas.position( 0, 0 );
 		//canvas.parent( 'sketch' );
 		p5.noSmooth();
 		p5.background( ...bg );
 
-		//Resettable
-		init2(); 
+		//Reset Canvas Buffer
+		if (!drawLayer) drawLayer = p5.createGraphics( canvasSize.width, canvasSize.height );
+		drawLayer.pixelDensity(pixelDens);
+		drawLayer.background( ...bg );
+		//off.noSmooth();
+		drawLayer.fill( ...bg );
+		drawLayer.noStroke();
+		screenScale = CEM.calcScale( canvas, drawLayer, "fill" );
+
+		//Reset Loading Animation Buffer
+		if (!loadLayer) loadLayer = p5.createGraphics( canvasSize.width, canvasSize.height );
+		loadLayer.pixelDensity(1);
+		loadLayer.smooth();
+		loadLayer.clear();
+		loadLayer.noStroke();
+		loadLayer.fill(255);
+		loadLayer.textSize(28); 
+		loadLayer.textFont('monospace');
+
+		//Reset Values
+		lighterOrDarker = true;
+		blendSetting = p5.ADD;
+		buildingsInSet = building = 0;
+		floorsInBuilding = floor = 0;
+		basementsInBuilding = basement = 0;
+		setsCount = buildingsCount = headstartProgress = 0;
+		timeLoaded = null;
+	
+		startSet();
+	}
+
+	p5.windowResized = () => {
+		p5.resizeCanvas( p5.windowWidth, p5.windowHeight );
+		screenScale = CEM.calcScale( canvas, drawLayer, "fill" );
 	}
 	
 	p5.draw = () => {
@@ -266,49 +331,14 @@ const sketch = p5 => {
 		}
 
 		//Download
-		if (download && !(headstartBuild && headstartProgress < 1.0)) { 
+		if (downloadPic && !(headstartBuild && headstartProgress < 1.0)) { 
 			p5.save(drawLayer, `understructures_${fxhash}_${(p5.millis().toFixed(0))}.png`);
-			download = false;
+			downloadPic = false;
 		}
-	}
-
-	function init2() {
-		CEM.newl();
-		CEM.print( ">>>>>>> RESET <<<<<<<<" );
-		
-		//Reset Canvas Buffer
-		if (!drawLayer) drawLayer = p5.createGraphics( canvasSize.width, canvasSize.height );
-		drawLayer.pixelDensity(1);
-		drawLayer.background( ...bg );
-		//off.noSmooth();
-		drawLayer.fill( ...bg );
-		drawLayer.noStroke();
-		screenScale = CEM.calcScale( canvas, drawLayer, "fill" );
-
-		//Reset Loading Animation Buffer
-		if (!loadLayer) loadLayer = p5.createGraphics( canvasSize.width, canvasSize.height );
-		loadLayer.smooth();
-		loadLayer.clear();
-		loadLayer.noStroke();
-		loadLayer.fill(255);
-		loadLayer.textSize(24); 
-		loadLayer.textFont('monospace');
-
-		//Reset Values
-		lighterOrDarker = true;
-		blendSetting = p5.ADD;
-		buildingsInSet = building = 0;
-		floorsInBuilding = floor = 0;
-		basementsInBuilding = basement = 0;
-		setsCount = buildingsCount = headstartProgress = 0;
-		timeLoaded = null;
-	
-		startSet();
-	}
-
-	p5.windowResized = () => {
-		p5.resizeCanvas( p5.windowWidth, p5.windowHeight );
-		screenScale = CEM.calcScale( canvas, drawLayer, "fill" );
+		if (downloadGIF && !(headstartBuild && headstartProgress < 1.0)) {
+			p5.saveGif(`understructures_${fxhash}_${(p5.millis().toFixed(0))}`, 5);
+			downloadGIF = false;
+		}
 	}
 
 	
@@ -340,13 +370,13 @@ const sketch = p5 => {
 		loadLayer.translate( loadingAreaSize.width/2, 0 );
 		// loa.textAlign( p5.CENTER, p5.BOTTOM );
 		// loa.text( authorText, 0, 0 );
-		loadLayer.translate( -200, -60 );
+		loadLayer.translate( -200, -80 );
 		loadLayer.textAlign( p5.LEFT, p5.BOTTOM );
 		loadLayer.text( titleText, 0, 0 );
 		loadLayer.pop();
 
 		// Draw progress text
-		loadLayer.translate(loadingAreaSize.width/2, loadingAreaSize.height + 80);
+		loadLayer.translate(loadingAreaSize.width/2, loadingAreaSize.height + 100);
 		loadLayer.textAlign(p5.CENTER, p5.TOP); 
 		// loa.text(`Loading... ${Math.floor(progress*100)}%\n'`, 0, 0);
 		loadLayer.text(`Laying Foundations: ${buildingsCount}/${headstartNumBuildings}\nArchitectural Plans: ${imageFilenames.length}`, 0, 0);
@@ -598,13 +628,28 @@ const sketch = p5 => {
 	}
 
 	p5.keyPressed = () => {
+		if (headstartBuild && headstartProgress < 1) return;
 		switch ( p5.keyCode ) {
 			case 82: // r
-				if (headstartBuild && headstartProgress < 1) break;
-				init2();
+				restart( true );
+				break;
+			case 78: // n
+				restart( false );
+				break;
+			case 49: // 1
+			case 50: // 2
+			case 51: // 3
+			case 52: // 4
+			// case 53: // 5
+			// case 54: // 6
+				pixelDens = p5.keyCode - 49 + 1
+				restart( true );
 				break;
 			case 83: // s
-				download = true;
+				downloadPic = true;
+				break;
+			case 71: // g
+				downloadGIF = true;
 				break;
 			case 84: // t
 				speedrun = true;

@@ -39,10 +39,9 @@ const loadingFloors = 20;
 const loadingFadeInTime = 1250;
 
 var headstartBuild = true;
-var headstartNumBuildings = 100;
+var headstartNumBuildings = $fx.context === "capture" ? 300 : 100;
 
 var speedrun = false; //No delays
-var flatMode = false; //Don't elevate
 var autoContinue = true; //Leave true, false disables continu() function
 var newSet = true; //Divide into sets or procedurally add
 var reloadURL = false; //Reload page every set
@@ -57,12 +56,13 @@ var debugPositions = false; //Displays source points and imag flip/rotate settin
 
 var drawBasements = false; //Add reversed floors below
 var blendingMethod = 0; //0 = Lightest/Darkest, 1 = Screen/Multiply
+var blueprintMode = false; //Cyanotype //UNFINISHED
 
 var stepDelay = 70; //Delay between floors
 var buildingDelay = 350; //Delay between buildings
 var newSetDelay = 800; //Delay between sets 
 
-var bg = 6; //Background color
+var bg = [ 6 ]; //Background color
 var floorSpacingRange = [ 20, 30 ]; //Y spacing between floors
 var floorNumRange = [ 8, 40 ]; //# of floors 																	20% min, 100% max, 20-60 max
 var basementsToFloorsRatio = 0.33; //Random 0-0.33 * floors = # of basements 
@@ -71,15 +71,13 @@ var scaleValRange = [ 0.3, 0.5 ]; //Building XY Scale
 var breadth = 1.1; //Distribution of buildings from center
 var darkTonePreference = 1.25; //Multiplier on num buildings for darker colors
 
-var flatMode = 
-
 $fx.features({
-	"Basements": CEM.coin(0.25), //Build down before going up
-	"Blending": ["Standard", "Noir"].at(CEM.coin(0.15)), //Lightest/Darkest vs Screen/Multiply
-	"Speed": CEM.randomWeighted(["Lazy", "On-Schedule", "Ahead", "Uncalled For"], [1,2,1,0.2]), //delays
-	"Zoning": CEM.randomWeighted(["Mixed-Use", "Strata", "Downtown"], [2,3,1]), //# of floors
-	"Set Length": ["Short", "Long"].at(CEM.coin()), //# of buildings in set
-	"Spread": ["Sprawl", "Island"].at(CEM.coin(0.25)), //Distribution of buildings from center
+	"Zoning": CEM.randomWeighted(["Mixed-Use", "Strata", "Highrise", "Undeveloped"], [2,3,1,0.25]), //# of floors
+	"Construction": CEM.randomWeighted(["Lazy", "On-Schedule", "Ahead", "Rushed"], [1,3,2,1]), //delays
+	"Basement Permits": ["Denied", "Approved"].at(CEM.coin(0.25)), //Build down before going up
+	"Paint": CEM.randomWeighted(["Standard", "Noir"], [12,2]), //Lightest/Darkest vs Screen/Multiply vs BLUEPRINT
+	"Tenancy": ["Short", "Long"].at(CEM.coin()), //# of buildings in set
+	"Commute": ["Sprawl", "Island"].at(CEM.coin(0.25)), //Distribution of buildings from center
 })
 
 function getNamedFeatureValue(featureName, values = {}) {
@@ -89,43 +87,27 @@ function getNamedFeatureValue(featureName, values = {}) {
 	return values[key];
 }
 
-drawBasements = $fx.getFeature("Basements"); //Add reversed floors below
-blendingMethod = getNamedFeatureValue("Blending", {
+drawBasements = $fx.getFeature("Basement Permits") === "Approved"; //Add reversed floors below
+
+blendingMethod = getNamedFeatureValue("Paint", {
 	"Standard": 0,
-	"Noir": 1
+	"Noir": 1,
 }); //0 = Lightest/Darkest, 1 = Screen/Multiply
 
-floorNumRange[1] = getNamedFeatureValue("Zoning", {
-	"Mixed-Use": 20,
-	"Strata": 40,
-	"Downtown": 60,
-});
-floorNumRange[0] = floorNumRange[1] * 0.2;
-if ($fx.getFeature("Zoning") === "Downtown") {
-	scaleValRange[0] *= 0.7;
-	scaleValRange[1] *= 0.9;
-	floorSpacingRange[0] *= 1.3
-	floorSpacingRange[1] *= 2
-}
-
-buildingsInSetRange[1] = getNamedFeatureValue("Set Length", {
+buildingsInSetRange[1] = getNamedFeatureValue("Tenancy", {
 	"Short": 6,
 	"Long": 18
 });
 buildingsInSetRange[0] = buildingsInSetRange[1] * 0.4;
 
-breadth = getNamedFeatureValue("Spread", {
+breadth = getNamedFeatureValue("Commute", {
 	"Sprawl": 1.1,
 	"Island": 0.5
 });
 scaleValRange[0] *= 0.5 + 0.5 * (breadth/1.1);
 scaleValRange[1] *= 0.5 + 0.5 * (breadth/1.1);
 
-var stepDelay = 70; //Delay between floors
-var buildingDelay = 350; //Delay between buildings
-var newSetDelay = 800; //Delay between sets
-
-switch ($fx.getFeature("Speed")) {
+switch ($fx.getFeature("Construction")) {
 	case "Lazy":
 		stepDelay = 120;
 		buildingDelay = 500;
@@ -141,14 +123,38 @@ switch ($fx.getFeature("Speed")) {
 		buildingDelay = 150;
 		newSetDelay = 600;
 		break;
-	case "Uncalled For":
+	case "Rushed":
 		stepDelay = 10;
 		buildingDelay = 100;
 		newSetDelay = 500;
 		break;
 
 	default:
+		stepDelay = 70; //Delay between floors
+		buildingDelay = 1; //Delay between buildings
+		newSetDelay = 1; //Delay between sets
 		break;
+}
+
+floorNumRange[1] = getNamedFeatureValue("Zoning", {
+	"Mixed-Use": 20,
+	"Strata": 40,
+	"Highrise": 60,
+	"Undeveloped": 1,
+});
+floorNumRange[0] = floorNumRange[1] * 0.2;
+if ($fx.getFeature("Zoning") === "Highrise") {
+	scaleValRange[0] *= 0.7;
+	scaleValRange[1] *= 0.9;
+	floorSpacingRange[0] *= 1.4
+	floorSpacingRange[1] *= 2
+}
+if ($fx.getFeature("Zoning") === "Undeveloped") {
+	stepDelay = 1;
+	buildingDelay = 1;
+	newSetDelay = 1;
+	floorNumRange = [1,1];
+	drawBasements = false;
 }
 
 // UNCHANGED
@@ -161,7 +167,7 @@ switch ($fx.getFeature("Speed")) {
 
 // Variables ////////////////////////////////////////////////////
 
-var canvas, off, loa; //Drawing surfaces
+var canvas, drawLayer, loadLayer; //Drawing surfaces
 var blendSetting;
 var lighterOrDarker; //Which Set of images to pull from
 var buildingsInSet, building, floorsInBuilding, floor, basementsInBuilding, basement, floorSpacing, centerShift;
@@ -206,24 +212,24 @@ const sketch = p5 => {
 		//canvas.position( 0, 0 );
 		//canvas.parent( 'sketch' );
 		p5.noSmooth();
-		p5.background( 0 );
+		p5.background( ...bg );
 
 		//Resettable
 		init2(); 
 	}
 	
 	p5.draw = () => {
-		p5.background( bg );
-
+		p5.background( ...bg );
+		
 		//Draw Offscreen Canvas Buffer
 		p5.translate( p5.width / 2, p5.height / 2 );
 		p5.scale( screenScale ); //Scale from Center
-		p5.translate( off.width / -2, off.height / -2 );
+		p5.translate( drawLayer.width / -2, drawLayer.height / -2 );
 
-		p5.image( off, 0, 0 );
+		p5.image( drawLayer, 0, 0 );
 
 		//Draw Loading "Icon"
-		if (headstartBuild && loa && loadingimg) {
+		if (headstartBuild && loadLayer && loadingimg) {
 			headstartProgress = buildingsCount / headstartNumBuildings;
 
 			if ( $fx.context === "capture") {
@@ -233,7 +239,7 @@ const sketch = p5 => {
 				if ( headstartProgress < 1.0 ) {
 					// LOADING STATE
 					drawLoading( headstartProgress );
-					p5.image( loa, 0, 0 );
+					p5.image( loadLayer, 0, 0 );
 				} else {
 					// DONE LOADING, FADE IN
 					if ( timeLoaded === null ) timeLoaded = p5.millis();
@@ -241,7 +247,7 @@ const sketch = p5 => {
 						let ease = CEM.Easing.easeInOutExpo( p5.millis()-timeLoaded, 255, -255, loadingFadeInTime );
 						drawLoading( headstartProgress );
 						p5.tint( 255, ease )
-						p5.image( loa, 0, 0 );
+						p5.image( loadLayer, 0, 0 );
 						p5.tint( 255 );
 					}
 				}
@@ -261,7 +267,7 @@ const sketch = p5 => {
 
 		//Download
 		if (download && !(headstartBuild && headstartProgress < 1.0)) { 
-			p5.save(off, `understructures_${fxhash}_${(p5.millis().toFixed(0))}.png`);
+			p5.save(drawLayer, `understructures_${fxhash}_${(p5.millis().toFixed(0))}.png`);
 			download = false;
 		}
 	}
@@ -271,22 +277,22 @@ const sketch = p5 => {
 		CEM.print( ">>>>>>> RESET <<<<<<<<" );
 		
 		//Reset Canvas Buffer
-		if (!off) off = p5.createGraphics( canvasSize.width, canvasSize.height );
-		off.pixelDensity(1);
-		off.background( bg );
+		if (!drawLayer) drawLayer = p5.createGraphics( canvasSize.width, canvasSize.height );
+		drawLayer.pixelDensity(1);
+		drawLayer.background( ...bg );
 		//off.noSmooth();
-		off.fill( bg );
-		off.noStroke();
-		screenScale = CEM.calcScale( canvas, off, "fill" );
+		drawLayer.fill( ...bg );
+		drawLayer.noStroke();
+		screenScale = CEM.calcScale( canvas, drawLayer, "fill" );
 
 		//Reset Loading Animation Buffer
-		if (!loa) loa = p5.createGraphics( canvasSize.width, canvasSize.height );
-		loa.smooth();
-		loa.clear();
-		loa.noStroke();
-		loa.fill(255);
-		loa.textSize(24); 
-		loa.textFont('monospace');
+		if (!loadLayer) loadLayer = p5.createGraphics( canvasSize.width, canvasSize.height );
+		loadLayer.smooth();
+		loadLayer.clear();
+		loadLayer.noStroke();
+		loadLayer.fill(255);
+		loadLayer.textSize(24); 
+		loadLayer.textFont('monospace');
 
 		//Reset Values
 		lighterOrDarker = true;
@@ -302,7 +308,7 @@ const sketch = p5 => {
 
 	p5.windowResized = () => {
 		p5.resizeCanvas( p5.windowWidth, p5.windowHeight );
-		screenScale = CEM.calcScale( canvas, off, "fill" );
+		screenScale = CEM.calcScale( canvas, drawLayer, "fill" );
 	}
 
 	
@@ -314,38 +320,38 @@ const sketch = p5 => {
 		let floors = loadingFloors;
 
 		//loa.clear(); 
-		loa.background( bg );
-		loa.push();
-		loa.translate( loa.width/2, loa.height/2)
-		loa.translate( loadingAreaSize.width/-2, loadingAreaSize.height/-2,)
+		loadLayer.background( ...bg );
+		loadLayer.push();
+		loadLayer.translate( loadLayer.width/2, loadLayer.height/2)
+		loadLayer.translate( loadingAreaSize.width/-2, loadingAreaSize.height/-2,)
 		
 		// Draw plans progress stack
 		for (let f = 0; f < Math.floor(floors * progress); f++) {
 			let dist = moveDistance * (1 - f/(floors-1));
-			loa.push();
-			loa.translate( 0, dist ); 
-			loa.scale( loadingimgScale );
-			loa.blend( loadingimg, 0, 0, loadingimg.width, loadingimg.height, 0, 0, loadingimg.width, loadingimg.height, p5.LIGHTEST );
-			loa.pop();
+			loadLayer.push();
+			loadLayer.translate( 0, dist ); 
+			loadLayer.scale( loadingimgScale );
+			loadLayer.blend( loadingimg, 0, 0, loadingimg.width, loadingimg.height, 0, 0, loadingimg.width, loadingimg.height, p5.LIGHTEST );
+			loadLayer.pop();
 		}
 
 		// Draw title
-		loa.push();
-		loa.translate( loadingAreaSize.width/2, 0 );
+		loadLayer.push();
+		loadLayer.translate( loadingAreaSize.width/2, 0 );
 		// loa.textAlign( p5.CENTER, p5.BOTTOM );
 		// loa.text( authorText, 0, 0 );
-		loa.translate( -200, -60 );
-		loa.textAlign( p5.LEFT, p5.BOTTOM );
-		loa.text( titleText, 0, 0 );
-		loa.pop();
+		loadLayer.translate( -200, -60 );
+		loadLayer.textAlign( p5.LEFT, p5.BOTTOM );
+		loadLayer.text( titleText, 0, 0 );
+		loadLayer.pop();
 
 		// Draw progress text
-		loa.translate(loadingAreaSize.width/2, loadingAreaSize.height + 80);
-		loa.textAlign(p5.CENTER, p5.TOP); 
+		loadLayer.translate(loadingAreaSize.width/2, loadingAreaSize.height + 80);
+		loadLayer.textAlign(p5.CENTER, p5.TOP); 
 		// loa.text(`Loading... ${Math.floor(progress*100)}%\n'`, 0, 0);
-		loa.text(`Laying Foundations: ${buildingsCount}/${headstartNumBuildings}\nArchitectural Plans: ${imageFilenames.length}`, 0, 0);
+		loadLayer.text(`Laying Foundations: ${buildingsCount}/${headstartNumBuildings}\nArchitectural Plans: ${imageFilenames.length}`, 0, 0);
 
-		loa.pop();
+		loadLayer.pop();
 	}
 
 	function startSet() {
@@ -356,7 +362,7 @@ const sketch = p5 => {
 		//Clear Timers
 		CEM.clearTimers();
 	
-		if ( setClean ) off.background( bg );
+		if ( setClean ) drawLayer.background( ...bg );
 		
 		switch (blendingMethod) {
 			case 0:
@@ -437,8 +443,8 @@ const sketch = p5 => {
 			scal = p5.random( scaleValRange[ 0 ], scaleValRange[ 1 ] );
 			flip = p5.random() > 0.5;
 			var br = ( breadth / scal ); //account for scaling
-			loc = p5.createVector(  p5.random( off.width  / 2 - off.width  * br / 2, off.width  / 2 + off.width  * br / 2 ),
-															p5.random( off.height / 2 - off.height * br / 2, off.height / 2 + off.height * br / 2 ) );
+			loc = p5.createVector(  p5.random( drawLayer.width  / 2 - drawLayer.width  * br / 2, drawLayer.width  / 2 + drawLayer.width  * br / 2 ),
+															p5.random( drawLayer.height / 2 - drawLayer.height * br / 2, drawLayer.height / 2 + drawLayer.height * br / 2 ) );
 			// loc = createVector( width/2, height/2 );
 	
 			// CEM.print("location:");
@@ -452,22 +458,22 @@ const sketch = p5 => {
 	
 	function addBase() {
 	
-		off.push();
-		off.translate( off.width / 2, off.height / 2 );
-		off.scale( scal ); //Scale from Center
-		off.translate( off.width / -2, off.height / -2 );
+		drawLayer.push();
+		drawLayer.translate( drawLayer.width / 2, drawLayer.height / 2 );
+		drawLayer.scale( scal ); //Scale from Center
+		drawLayer.translate( drawLayer.width / -2, drawLayer.height / -2 );
 	
-		off.translate( 0, centerShift ); //Center
-		off.translate( loc.x, loc.y ); //Position
-		off.translate( 0, floorSpacing * basement ); //Floors
+		drawLayer.translate( 0, centerShift ); //Center
+		drawLayer.translate( loc.x, loc.y ); //Position
+		drawLayer.translate( 0, floorSpacing * basement ); //Floors
 	
-		if (rot) off.rotate( Math.PI );
-		off.rotate( Math.PI ); //basements are backwards
-		if (flip) off.scale(-1, 1);
-		off.translate( -img.width / 2, -img.height / 2 );
+		if (rot) drawLayer.rotate( Math.PI );
+		drawLayer.rotate( Math.PI ); //basements are backwards
+		if (flip) drawLayer.scale(-1, 1);
+		drawLayer.translate( -img.width / 2, -img.height / 2 );
 	
-		off.blend( img, 0, 0, img.width, img.height, 0, 0, img.width, img.height, blendSetting );
-		off.pop();
+		drawLayer.blend( img, 0, 0, img.width, img.height, 0, 0, img.width, img.height, blendSetting );
+		drawLayer.pop();
 	
 		basement++;
 	
@@ -482,33 +488,33 @@ const sketch = p5 => {
 	
 	function addFloor() {
 	
-		off.push();
-		if ( fade ) off.rect( 0, 0, off.width, off.height );
+		drawLayer.push();
+		if ( fade ) drawLayer.rect( 0, 0, drawLayer.width, drawLayer.height );
 	
-		off.translate( off.width / 2, off.height / 2 );
-		off.scale( scal ); //Scale from Center
-		off.translate( off.width / -2, off.height / -2 );
+		drawLayer.translate( drawLayer.width / 2, drawLayer.height / 2 );
+		drawLayer.scale( scal ); //Scale from Center
+		drawLayer.translate( drawLayer.width / -2, drawLayer.height / -2 );
 	
-		off.translate( 0, centerShift ); //Center
-		off.translate( loc.x, loc.y ); //Position
-		off.translate( 0, -floorSpacing * floor ); //Floors
+		drawLayer.translate( 0, centerShift ); //Center
+		drawLayer.translate( loc.x, loc.y ); //Position
+		drawLayer.translate( 0, -floorSpacing * floor ); //Floors
 	
 		//Debug
 		if (debugPositions) {
-			off.stroke(255, 0, 0);
-			if (flip) off.stroke(0, 255, 0);
-			if (rot) off.stroke(0, 0, 255);
-			if (rot && flip) off.stroke(0, 255, 255);
-			off.strokeWeight(30);
-			off.point(0,0);
+			drawLayer.stroke(255, 0, 0);
+			if (flip) drawLayer.stroke(0, 255, 0);
+			if (rot) drawLayer.stroke(0, 0, 255);
+			if (rot && flip) drawLayer.stroke(0, 255, 255);
+			drawLayer.strokeWeight(30);
+			drawLayer.point(0,0);
 		}
 	
-		if (rot) off.rotate( Math.PI );
-		if (flip) off.scale(-1, 1);
-		off.translate( -img.width / 2, -img.height / 2 );
-	
-		off.blend( img, 0, 0, img.width, img.height, 0, 0, img.width, img.height, blendSetting );
-		off.pop();
+		if (rot) drawLayer.rotate( Math.PI );
+		if (flip) drawLayer.scale(-1, 1);
+		drawLayer.translate( -img.width / 2, -img.height / 2 );
+		
+		drawLayer.blend( img, 0, 0, img.width, img.height, 0, 0, img.width, img.height, blendSetting );
+		drawLayer.pop();
 	
 		floor++;
 	
@@ -536,8 +542,8 @@ const sketch = p5 => {
 						var it = 60;
 						for ( var i = 0; i < it; i++ ) {
 							CEM.newTimer( function () {
-								off.fill( bg, 20 );
-								off.rect( 0, 0, width, height );
+								drawLayer.fill( ...bg, 20 );
+								drawLayer.rect( 0, 0, width, height );
 							}, skipCheck( 1000 / 24 * i ) );
 						}
 						CEM.newTimer( function () {

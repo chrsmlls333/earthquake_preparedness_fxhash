@@ -71,7 +71,7 @@ var breadth = 1.1; //Distribution of buildings from center
 var darkTonePreference = 1.25; //Multiplier on num buildings for darker colors
 
 $fx.features({
-	"Zoning": CEM.randomWeighted(["Mixed-Use", "Strata", "Highrise", "Undeveloped"], [2,3,1,0.25]), //# of floors
+	"Zoning": CEM.randomWeighted(["Mixed-Use", "Strata", "Highrise", "Undeveloped"], [20,30,10,2]), //# of floors
 	"Construction": CEM.randomWeighted(["Lazy", "On-Schedule", "Ahead", "Rushed"], [1,3,2,1]), //delays
 	"Basement Permits": ["Denied", "Approved"].at(CEM.coin(0.25)), //Build down before going up
 	"Paint": CEM.randomWeighted(["Standard", "Noir"], [12,2]), //Lightest/Darkest vs Screen/Multiply vs BLUEPRINT

@@ -32,7 +32,7 @@ const authorText = "Chris Eugene Mills"
 const imagePath = "./assets/plans-iso-tiny/"
 const imageFilenamesPath = "./assets/plans-iso-tiny/filenames.json"
 
-const canvasSize = { width: 1920, height: 1080 };
+const canvasSize = { width: $fx.context === "capture" ? 1080 : 1920, height: 1080 };
 var pixelDens = 1;
 
 var headstartBuild = true;

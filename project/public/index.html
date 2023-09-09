@@ -13,9 +13,32 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <meta name="author" content="Chris Eugene Mills">
     <link rel="stylesheet" href="./style.css">
-    <!-- if you need to import js scripts do it here  -->
+    <style>
+      html, body {
+        background-color: black;
+      }
+    </style>
   </head>
   <body>
+    <div id="loading_shade" class="container">
+      <div class="title_area">
+        <pre>
+Earthquake Preparedness (      
+   Lift Yr. Skinny Fists       
+      Like Antennas to Heaven )</pre>
+      </div>
+      <div id="loading_info" class="info_area">
+        <span id="loading_progress">
+          Laying Foundations: 0/100<br>Architectural Plans: 0
+        </span>
+      </div>
+      <div id="loading_graphic" class="graphic_area">
+        <!-- loading canvas -->
+      </div>
+    </div>
+    <div id="sketch" class="sketch_container">
+      <!-- main canvas -->
+    </div>
     
     <!-- WEBPACK will inject the bundle.js here -->
   </body>

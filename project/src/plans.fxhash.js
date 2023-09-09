@@ -33,7 +33,6 @@ const imagePath = "./assets/plans-iso-tiny/"
 const imageFilenamesPath = "./assets/plans-iso-tiny/filenames.json"
 
 const canvasSize = { width: 1920, height: 1080 };
-const loadingAreaSize = { width: 500, height: 500 };
 var pixelDens = 1;
 
 var headstartBuild = true;
@@ -176,6 +175,7 @@ var imageFilenames;
 var buildingsCount, setsCount, headstartProgress, timeLoaded;
 var loc, rot, scal, flip;
 var downloadPic = false, downloadGIF = false;
+var loadingShade, progressSpan;
 
 // CORE /////////////////////////////////////////////////////////
 
@@ -183,6 +183,10 @@ const sketch = p5 => {
 
 
 	p5.preload = () => {
+
+		// FXHASH // Lock all random calls to fxhash seed
+		p5.randomSeed(p5RandomSeed);
+		p5.noiseSeed(p5NoiseSeed);
 
 		// Get URLparams
 		const params = new URLSearchParams(window.location.search)
@@ -203,9 +207,9 @@ const sketch = p5 => {
 			debugPositions = !!v;
 		})
 
-		// FXHASH // Lock all random calls to fxhash seed
-		p5.randomSeed(p5RandomSeed);
-		p5.noiseSeed(p5NoiseSeed);
+		// Get HTML Refs
+		loadingShade = p5.select('#loading_shade');
+		progressSpan = p5.select('#loading_progress');
 
 		// Preload plan image reference
 		p5.loadJSON(imageFilenamesPath, function(data) {
@@ -244,8 +248,7 @@ const sketch = p5 => {
 		//Create Main Canvas
 		p5.pixelDensity(pixelDens);
 		if (!canvas) canvas = p5.createCanvas( p5.windowWidth, p5.windowHeight );
-		//canvas.position( 0, 0 );
-		//canvas.parent( 'sketch' );
+		canvas.parent( 'sketch' );
 		p5.noSmooth();
 		p5.background( ...bg );
 
@@ -259,14 +262,15 @@ const sketch = p5 => {
 		screenScale = CEM.calcScale( canvas, drawLayer, "fill" );
 
 		//Reset Loading Animation Buffer
-		if (!loadLayer) loadLayer = p5.createGraphics( canvasSize.width, canvasSize.height );
-		loadLayer.pixelDensity(1);
+		loadingShade.removeClass('hidden');
+		let graphicDiv = p5.select('#loading_graphic');
+		if (!loadLayer) loadLayer = p5.createGraphics( graphicDiv.width, graphicDiv.height );
+		loadLayer.parent( graphicDiv );
+		loadLayer.show();
 		loadLayer.smooth();
 		loadLayer.clear();
 		loadLayer.noStroke();
 		loadLayer.fill(255);
-		loadLayer.textSize(28); 
-		loadLayer.textFont('monospace');
 
 		//Reset Values
 		lighterOrDarker = true;
@@ -299,31 +303,20 @@ const sketch = p5 => {
 		if (headstartBuild && loadLayer && loadingimg) {
 			headstartProgress = buildingsCount / headstartNumBuildings;
 
-			if ( $fx.context === "capture") {
-				// WAIT AND CUT TO CONTENT
-				if ( headstartProgress >= 1.0 && !fxPreviewCalled ) { $fx.preview(); fxPreviewCalled = true; }
-			} else {
-				if ( headstartProgress < 1.0 ) {
-					// LOADING STATE
-					drawLoading( headstartProgress );
-					p5.image( loadLayer, 0, 0 );
-				} else {
-					// DONE LOADING, FADE IN
-					if ( timeLoaded === null ) timeLoaded = p5.millis();
-					if ( p5.millis() <= timeLoaded + loadingFadeInTime ) {
-						let ease = CEM.Easing.easeInOutExpo( p5.millis()-timeLoaded, 255, -255, loadingFadeInTime );
-						drawLoading( headstartProgress );
-						p5.tint( 255, ease )
-						p5.image( loadLayer, 0, 0 );
-						p5.tint( 255 );
-					}
-				}
+			if ( headstartProgress <= 1.0 ) {
+			  drawLoading( headstartProgress );
+			} 
+			if ( headstartProgress >= 1.0 && !fxPreviewCalled ) { 
+				$fx.preview()
+				fxPreviewCalled = true
+			}
+			if ( headstartProgress >= 1.0 && !loadingShade.hasClass('hidden') ) { 
+				loadingShade.addClass('hidden');
 			}
 		}
 
 		//Preview Logic for no-load Scenario
 		if (
-			$fx.context === "capture" && 
 			!headstartBuild && 
 			!fxPreviewCalled &&
 			p5.millis() > 30000
@@ -347,15 +340,11 @@ const sketch = p5 => {
 	function drawLoading(progress_) {
 		let progress = p5.constrain(progress_, 0, 1);
 
-		let loadingimgScale = CEM.calcScale( loadingAreaSize, loadingimg, "fit" );
-		let moveDistance = loadingAreaSize.height - loadingimg.height*loadingimgScale;
+		let loadingimgScale = CEM.calcScale( loadLayer, loadingimg, "fit" );
+		let moveDistance = loadLayer.height - loadingimg.height*loadingimgScale;
 		let floors = loadingFloors;
 
-		//loa.clear(); 
-		loadLayer.background( ...bg );
-		loadLayer.push();
-		loadLayer.translate( loadLayer.width/2, loadLayer.height/2)
-		loadLayer.translate( loadingAreaSize.width/-2, loadingAreaSize.height/-2,)
+		loadLayer.clear();
 		
 		// Draw plans progress stack
 		for (let f = 0; f < Math.floor(floors * progress); f++) {
@@ -363,27 +352,12 @@ const sketch = p5 => {
 			loadLayer.push();
 			loadLayer.translate( 0, dist ); 
 			loadLayer.scale( loadingimgScale );
-			loadLayer.blend( loadingimg, 0, 0, loadingimg.width, loadingimg.height, 0, 0, loadingimg.width, loadingimg.height, p5.LIGHTEST );
+			loadLayer.blend( loadingimg, 0, 0, loadingimg.width, loadingimg.height, 0, 0, loadingimg.width, loadingimg.height, p5.SCREEN );
 			loadLayer.pop();
 		}
 
-		// Draw title
-		loadLayer.push();
-		loadLayer.translate( loadingAreaSize.width/2, 0 );
-		// loa.textAlign( p5.CENTER, p5.BOTTOM );
-		// loa.text( authorText, 0, 0 );
-		loadLayer.translate( -200, -80 );
-		loadLayer.textAlign( p5.LEFT, p5.BOTTOM );
-		loadLayer.text( titleText, 0, 0 );
-		loadLayer.pop();
-
 		// Draw progress text
-		loadLayer.translate(loadingAreaSize.width/2, loadingAreaSize.height + 100);
-		loadLayer.textAlign(p5.CENTER, p5.TOP); 
-		// loa.text(`Loading... ${Math.floor(progress*100)}%\n'`, 0, 0);
-		loadLayer.text(`Laying Foundations: ${buildingsCount}/${headstartNumBuildings}\nArchitectural Plans: ${imageFilenames.length}`, 0, 0);
-
-		loadLayer.pop();
+		progressSpan.html(`Laying Foundations: ${buildingsCount}/${headstartNumBuildings}<br>Architectural Plans: ${imageFilenames.length}`)
 	}
 
 	function startSet() {

@@ -1,30 +1,86 @@
 * {
-	margin: 0;
-	padding: 0;
+  margin: 0;
+  padding: 0;
 }
 
 html {
   height: 100%;
 }
 
-body {
-  background-color: black;
+body, body > div {
+  background-color: #060606;
 
   /* leave it to hide the scrollbars */
   overflow: hidden;
 
-  margin: 0;
-  padding: 0;
   width: 100%;
   height: 100%;
+
+  position: absolute;
+  top: 0;
+  left: 0;
 }
 
 canvas {
-  display: block;
-  vertical-align: middle;
-  
   /* image-rendering: -moz-crisp-edges;
   image-rendering: -webkit-optimize-contrast;
   image-rendering: pixelated;
   -ms-interpolation-mode: nearest-neighbor; */
+}
+
+.container {  
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-rows: 1fr 3fr 1fr;
+  gap: 0px 0px;
+  grid-auto-flow: row;
+  grid-template-areas:
+    ". Title ."
+    ". Graphic ."
+    ". Info .";
+  width: 100%;
+  height: 100%;
+
+  font-family: monospace;
+  font-size: 2.5vh;
+  color:white;
+  text-align: center;
+  text-wrap: nowrap;
+
+  z-index: 2;
+}
+
+.hidden {
+  animation: fadeOut 0.5s ease-in-out forwards;
+}
+
+@-webkit-keyframes fadeOut {
+  0% {opacity: 1;}
+  99% {opacity: 0; z-index: 2;}
+  100% {z-index: -2;}
+}
+
+@keyframes fadeOut {
+  0% {opacity: 1;}
+  99% {opacity: 0; z-index: 2;}
+  100% {z-index: -2;}
+}
+
+.title_area { 
+  grid-area: Title; 
+  margin-top: auto;
+}
+
+.info_area { 
+  grid-area: Info; 
+}
+
+.graphic_area { 
+  grid-area: Graphic; 
+  margin-block: 4vh;
+}
+
+.graphic_area canvas {
+  margin-inline: auto;
+  max-width: 80vw;
 }

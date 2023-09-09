@@ -256,6 +256,7 @@ const sketch = p5 => {
 
 		//Reset Canvas Buffer
 		if (!drawLayer) drawLayer = p5.createGraphics( canvasSize.width, canvasSize.height );
+		drawLayer.elt.setAttribute('id','drawLayer');
 		drawLayer.pixelDensity(pixelDens);
 		drawLayer.background( ...bg );
 		//off.noSmooth();
@@ -266,8 +267,9 @@ const sketch = p5 => {
 		//Reset Loading Animation Buffer
 		loadingShade.removeClass('hidden');
 		let graphicDiv = p5.select('#loading_graphic');
-		if (!loadLayer) loadLayer = p5.createGraphics( graphicDiv.width, graphicDiv.height );
+		if (!loadLayer) loadLayer = p5.createGraphics( graphicDiv.width || 400, graphicDiv.height || 400 );
 		loadLayer.parent( graphicDiv );
+		loadLayer.elt.setAttribute('id','loadingAnimationLayer');
 		loadLayer.show();
 		loadLayer.smooth();
 		loadLayer.clear();

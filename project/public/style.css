@@ -56,14 +56,14 @@ canvas {
 
 @-webkit-keyframes fadeOut {
   0% {opacity: 1;}
-  99% {opacity: 0; z-index: 2;}
-  100% {z-index: -2;}
+  99% {opacity: 0; visibility: visible;}
+  100% {opacity: 0; visibility: hidden;}
 }
 
 @keyframes fadeOut {
   0% {opacity: 1;}
-  99% {opacity: 0; z-index: 2;}
-  100% {z-index: -2;}
+  99% {opacity: 0; visibility: visible;}
+  100% {opacity: 0; visibility: hidden;}
 }
 
 .title_area { 

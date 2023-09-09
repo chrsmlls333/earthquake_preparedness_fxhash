@@ -1,9 +1,9 @@
-Earthquake Preparedness (
-   Lift Yr. Skinny Fists
-      Like Antennas to Heaven )
-
-   by Chris Eugene Mills
-      2016, remastered 2023
+Earthquake Preparedness (  
+   Lift Yr. Skinny Fists  
+      Like Antennas to Heaven )  
+  
+   by Chris Eugene Mills  
+      2016, remastered 2023  
 
 // ===================================
 
@@ -23,16 +23,16 @@ Tested on Chrome 116, Firefox 117.
 
 // Keyboard Interaction // ===========
 
-press [s]   = save a PNG screenshot
-press [g]   = save a 5sec GIF
-hold  [t]   = TURBO BUTTON
-press [r]   = restart with same seed
-press [n]   = restart anew
-press [1-6] = adjust DPI and restart
-              (1920x1080 - 11520x6480)
+press [s]   = save a PNG screenshot  
+press [g]   = save a 5sec GIF  
+hold  [t]   = TURBO BUTTON  
+press [r]   = restart with same seed  
+press [n]   = restart anew  
+press [1-6] = adjust DPI and restart  
+              (1920x1080 - 11520x6480)  
 
 // URL Parameters // =================
 
-[scale]     = float, DPI (adaptive)
-[preload]   = 0/1, loading screen (true)
-[build]     = integer, buildings in preload (100)
+[scale]     = float, DPI (adaptive)  
+[preload]   = 0/1, loading screen (true)  
+[build]     = integer, buildings in preload (100)  

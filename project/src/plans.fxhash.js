@@ -37,9 +37,8 @@ const loadingAreaSize = { width: 500, height: 500 };
 var pixelDens = 1;
 
 var headstartBuild = true;
-const headstartNumBuildings = $fx.context === "capture" ? 200 : 100;
+var headstartNumBuildings = $fx.context === "capture" ? 200 : 100;
 const loadingFloors = 20;
-const loadingFadeInTime = 1250;
 
 var speedrun = false; //No delays
 var autoContinue = true; //Leave true, false disables continu() function
@@ -103,7 +102,7 @@ buildingsInSetRange[0] = buildingsInSetRange[1] * 0.4;
 
 breadth = getNamedFeatureValue("Commute", {
 	"Sprawl": 1.1,
-	"Island": 0.5
+	"Island": 0.6
 });
 scaleValRange[0] *= 0.5 + 0.5 * (breadth/1.1);
 scaleValRange[1] *= 0.5 + 0.5 * (breadth/1.1);
@@ -169,14 +168,13 @@ if ($fx.getFeature("Zoning") === "Undeveloped") {
 // Variables ////////////////////////////////////////////////////
 
 var canvas, drawLayer, loadLayer; //Drawing surfaces
-var blendSetting;
-var lighterOrDarker; //Which Set of images to pull from
+var screenScale;
+var blendSetting, lighterOrDarker; //Which Set of images to pull from
 var buildingsInSet, building, floorsInBuilding, floor, basementsInBuilding, basement, floorSpacing, centerShift;
 var img, loadingimg; 
-var loc, rot, scal, flip;
-var screenScale;
-var buildingsCount, setsCount, headstartProgress, timeLoaded;
 var imageFilenames;
+var buildingsCount, setsCount, headstartProgress, timeLoaded;
+var loc, rot, scal, flip;
 var downloadPic = false, downloadGIF = false;
 
 // CORE /////////////////////////////////////////////////////////
@@ -190,12 +188,16 @@ const sketch = p5 => {
 		const params = new URLSearchParams(window.location.search)
 		function getParamValue(URLSearchParamsObject, paramKey, cb) {
 			if (URLSearchParamsObject.has(paramKey)) {
-				let val = parseInt(URLSearchParamsObject.get(paramKey));
+				let val = parseFloat(URLSearchParamsObject.get(paramKey));
 				if (!isNaN(val)) cb(val);
 			}
 		}
 		getParamValue(params, 'scale', v => pixelDens = v)
 		getParamValue(params, 'preload', v => headstartBuild = !!v)
+		getParamValue(params, 'build', v => { 
+			headstartBuild = true
+			headstartNumBuildings = v
+		})
 		getParamValue(params, 'debug', v => {
 			CEM.setVerbose(!!v);
 			debugPositions = !!v;
@@ -429,8 +431,8 @@ const sketch = p5 => {
 		CEM.newl();
 	
 		//Fetch new image
-		var path = newFile(lighterOrDarker)
-		img = p5.loadImage( path,
+		var path = newFilePath(lighterOrDarker)
+		img = p5.loadImage( path, 
 			function () {
 				CEM.print( "Loaded: " + path )
 				building++;
@@ -461,7 +463,7 @@ const sketch = p5 => {
 			}
 		);
 	
-		function newFile(lighterOrDarker_) { 
+		function newFilePath(lighterOrDarker_) { 
 			var folder = lighterOrDarker_ ? "white/" : "black/";
 			var num = p5.floor( p5.random( imageFilenames.length ) );
 			var p = imagePath + folder + imageFilenames[num];
@@ -640,8 +642,8 @@ const sketch = p5 => {
 			case 50: // 2
 			case 51: // 3
 			case 52: // 4
-			// case 53: // 5
-			// case 54: // 6
+			case 53: // 5
+			case 54: // 6
 				pixelDens = p5.keyCode - 49 + 1
 				restart( true );
 				break;

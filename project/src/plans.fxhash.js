@@ -74,8 +74,8 @@ $fx.features({
 	"Zoning": CEM.randomWeighted(["Mixed-Use", "Strata", "Highrise", "Undeveloped"], [20,30,10,2]), //# of floors
 	"Construction": CEM.randomWeighted(["Lazy", "On-Schedule", "Ahead", "Rushed"], [1,3,2,1]), //delays
 	"Basement Permits": ["Denied", "Approved"].at(CEM.coin(0.25)), //Build down before going up
-	"Paint": CEM.randomWeighted(["Standard", "Noir"], [12,2]), //Lightest/Darkest vs Screen/Multiply vs BLUEPRINT
-	"Tenancy": ["Short", "Long"].at(CEM.coin()), //# of buildings in set
+	"Paint": ["Standard", "Noir"].at(CEM.coin(0.1)), //Lightest/Darkest vs Screen/Multiply vs BLUEPRINT
+	"Tenancy": ["Short", "Long"].at(CEM.coin(0.5)), //# of buildings in set
 	"Commute": ["Sprawl", "Island"].at(CEM.coin(0.25)), //Distribution of buildings from center
 })
 

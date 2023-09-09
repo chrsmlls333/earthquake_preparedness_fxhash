@@ -196,7 +196,9 @@ const sketch = p5 => {
 				if (!isNaN(val)) cb(val);
 			}
 		}
+		pixelDens = p5.pixelDensity();
 		getParamValue(params, 'scale', v => pixelDens = v)
+		console.log('Pixel Density', pixelDens);
 		getParamValue(params, 'preload', v => headstartBuild = !!v)
 		getParamValue(params, 'build', v => { 
 			headstartBuild = true
